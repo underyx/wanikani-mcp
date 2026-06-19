@@ -29,11 +29,12 @@ jobs:
       - name: Build project artifacts
         run: npx vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
       - name: Deploy to Vercel
-        id: deploy
-        run: echo "url=$(npx vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})" >> "$GITHUB_OUTPUT"
+        run: npx vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
       - name: Smoke test MCP endpoint
         env:
-          DEPLOY_URL: ${{ steps.deploy.outputs.url }}
+          # The production domain; the deployment-specific URL printed by
+          # `vercel deploy` sits behind Vercel's deployment protection.
+          DEPLOY_URL: https://wanikani-mcp.vercel.app
         run: |
           response=$(curl -sf -X POST "$DEPLOY_URL/mcp" \
             -H "Content-Type: application/json" \
