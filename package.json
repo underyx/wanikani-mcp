@@ -1,0 +1,38 @@
+{
+  "name": "wanikani-mcp",
+  "version": "0.1.0",
+  "description": "MCP server for the WaniKani API: check lessons, reviews, and level progress, look up subjects, and submit reviews from any MCP client.",
+  "license": "MIT",
+  "author": "Bence Nagy <nagy@bence.dev>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/underyx/wanikani-mcp.git"
+  },
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "wanikani-mcp": "dist/stdio.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "prepare": "npm run build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "zod": "^4.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^6.0.3",
+    "vercel": "^54.14.2",
+    "vitest": "^4.1.9"
+  }
+}

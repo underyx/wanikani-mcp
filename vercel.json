@@ -1,0 +1,14 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": null,
+  "outputDirectory": "public",
+  "rewrites": [
+    { "source": "/mcp", "destination": "/api/mcp" },
+    { "source": "/", "destination": "/api/index" }
+  ],
+  "functions": {
+    "api/*.ts": {
+      "maxDuration": 300
+    }
+  }
+}
