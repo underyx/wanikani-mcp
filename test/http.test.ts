@@ -14,6 +14,10 @@ function rpcRequest(body: unknown, headers: Record<string, string> = {}): Reques
   });
 }
 
+// A raw (non-OAuth) bearer is enough to pass the auth gate; protocol-level
+// methods (initialize, tools/list) never reach the WaniKani API.
+const AUTH = { Authorization: "Bearer raw-wanikani-token" };
+
 const initializeBody = {
   jsonrpc: "2.0",
   id: 1,
@@ -26,8 +30,8 @@ const initializeBody = {
 };
 
 describe("HTTP MCP endpoint", () => {
-  it("responds to initialize without requiring a token", async () => {
-    const response = await POST(rpcRequest(initializeBody));
+  it("responds to initialize for an authenticated request", async () => {
+    const response = await POST(rpcRequest(initializeBody, AUTH));
     expect(response.status).toBe(200);
     expect(response.headers.get("access-control-allow-origin")).toBe("*");
     const body = (await response.json()) as {
@@ -38,12 +42,20 @@ describe("HTTP MCP endpoint", () => {
   });
 
   it("lists tools over HTTP", async () => {
-    const response = await POST(rpcRequest({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} }));
+    const response = await POST(rpcRequest({ jsonrpc: "2.0", id: 2, method: "tools/list", params: {} }, AUTH));
     expect(response.status).toBe(200);
     const body = (await response.json()) as { result: { tools: Array<{ name: string }> } };
     const names = body.result.tools.map((tool) => tool.name);
     expect(names).toContain("get_summary");
     expect(names).toContain("create_review");
+  });
+
+  it("rejects an unauthenticated request with 401 and a metadata pointer", async () => {
+    const response = await POST(rpcRequest({ jsonrpc: "2.0", id: 9, method: "tools/list", params: {} }));
+    expect(response.status).toBe(401);
+    expect(response.headers.get("www-authenticate")).toContain(
+      "/.well-known/oauth-protected-resource",
+    );
   });
 
   it("handles CORS preflight", async () => {
@@ -116,13 +128,21 @@ describe("token passthrough over HTTP", () => {
     expect(calls[0]!.headers.get("wanikani-revision")).toBe("20170710");
   });
 
-  it("returns a no-token error when neither header nor env token is present", async () => {
+  it("returns 401 when neither header nor env token is present", async () => {
     vi.stubEnv("WANIKANI_API_TOKEN", "");
     const calls = stubWaniKani();
     const response = await callGetUser();
-    const body = (await response.json()) as { result: { isError?: boolean; content: Array<{ text: string }> } };
-    expect(body.result.isError).toBe(true);
-    expect(body.result.content[0]!.text).toContain("personal_access_tokens");
+    expect(response.status).toBe(401);
+    expect(response.headers.get("www-authenticate")).toContain("/.well-known/oauth-protected-resource");
+    expect(calls).toHaveLength(0);
+  });
+
+  it("returns 401 for an invalid OAuth access token", async () => {
+    vi.stubEnv("WANIKANI_API_TOKEN", "");
+    vi.stubEnv("OAUTH_SIGNING_SECRET", "test-signing-secret-not-for-production");
+    const calls = stubWaniKani();
+    const response = await callGetUser({ Authorization: "Bearer wkmcp_at_not-a-real-token" });
+    expect(response.status).toBe(401);
     expect(calls).toHaveLength(0);
   });
 

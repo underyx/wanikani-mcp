@@ -30,15 +30,29 @@ jobs:
         run: npx vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
       - name: Deploy to Vercel
         run: npx vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
-      - name: Smoke test MCP endpoint
+      - name: Smoke test deployed endpoints
         env:
           # The production domain; the deployment-specific URL printed by
           # `vercel deploy` sits behind Vercel's deployment protection.
           DEPLOY_URL: https://wanikani-mcp.vercel.app
         run: |
-          response=$(curl -sf -X POST "$DEPLOY_URL/mcp" \
+          set -e
+          # OAuth authorization-server metadata is served and well-formed.
+          metadata=$(curl -sf "$DEPLOY_URL/.well-known/oauth-authorization-server")
+          echo "$metadata"
+          echo "$metadata" | grep -q '"token_endpoint"'
+          # An MCP call with a (bogus) token reaches the server and lists tools.
+          tools=$(curl -sf -X POST "$DEPLOY_URL/mcp" \
+            -H "Authorization: Bearer smoke-test-token" \
             -H "Content-Type: application/json" \
             -H "Accept: application/json, text/event-stream" \
-            -d '{"jsonrpc":"2.0","id":1,"method":"initialize","params":{"protocolVersion":"2025-06-18","capabilities":{},"clientInfo":{"name":"smoke-test","version":"0.0.0"}}}')
-          echo "$response"
-          echo "$response" | grep -q '"wanikani-mcp"'
+            -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}')
+          echo "$tools"
+          echo "$tools" | grep -q '"get_summary"'
+          # An unauthenticated MCP call is rejected with 401 so clients start OAuth.
+          status=$(curl -s -o /dev/null -w '%{http_code}' -X POST "$DEPLOY_URL/mcp" \
+            -H "Content-Type: application/json" \
+            -H "Accept: application/json, text/event-stream" \
+            -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}')
+          echo "unauthenticated /mcp -> $status"
+          [ "$status" = "401" ]

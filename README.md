@@ -4,7 +4,7 @@ An [MCP](https://modelcontextprotocol.io) server for the [WaniKani API](https://
 
 It runs in two ways:
 
-- **Remote (streamable HTTP)** — deployed on Vercel; your WaniKani token is sent per-request via the `Authorization` header and only ever forwarded to `api.wanikani.com`.
+- **Remote (streamable HTTP)** — deployed on Vercel. Clients that can send headers (Claude Code, Cursor) pass your WaniKani token per-request in the `Authorization` header; clients that can't (claude.ai) log in through a built-in OAuth flow where you paste your token once. Either way the token is only ever forwarded to `api.wanikani.com`.
 - **Local (stdio)** — run with `npx`, token comes from the `WANIKANI_API_TOKEN` environment variable.
 
 You'll need a WaniKani personal access token from [wanikani.com/settings/personal_access_tokens](https://www.wanikani.com/settings/personal_access_tokens). A read-only token is enough for everything except `start_assignment`, `create_review`, study material edits, and preference updates.
@@ -40,7 +40,9 @@ claude mcp add wanikani --env WANIKANI_API_TOKEN=YOUR_WANIKANI_TOKEN \
 
 ### claude.ai custom connectors
 
-claude.ai connectors can't send a static `Authorization` header. If you want to use this from claude.ai, deploy your own copy (below) and set the `WANIKANI_API_TOKEN` environment variable on the deployment instead — but note that this makes the deployment usable by anyone who discovers its URL, since there is no other authentication in front of it.
+Add a custom connector pointing at `https://wanikani-mcp.vercel.app/mcp` (Settings → Connectors → Add custom connector). claude.ai will open a **Connect** page served by this server; paste your WaniKani API token there once and you're done. The token is verified against WaniKani, then carried inside an encrypted OAuth access token — it is never stored on the server.
+
+This works because the server implements a small OAuth 2.1 authorization server (dynamic client registration, PKCE, encrypted authorization codes and access/refresh tokens), so no static header is needed.
 
 ## Tools
 
@@ -74,7 +76,7 @@ Or fork this repo and use the included GitHub Actions workflow (`.github/workflo
 | `VERCEL_ORG_ID` | `.vercel/project.json` after running `vercel link` locally |
 | `VERCEL_PROJECT_ID` | `.vercel/project.json` after running `vercel link` locally |
 
-No environment variables are required on the deployment itself; set `WANIKANI_API_TOKEN` only if you want a single-user deployment that works without per-request auth headers.
+Set one environment variable on the deployment: `OAUTH_SIGNING_SECRET`, a long random string (e.g. `openssl rand -hex 32`) used to encrypt OAuth tokens. Keep it stable — rotating it invalidates everyone's existing claude.ai login. Optionally set `WANIKANI_API_TOKEN` for a single-user deployment that works without any auth at all (anyone who reaches the URL then acts as that token).
 
 ## Development
 
@@ -85,7 +87,7 @@ npm run typecheck
 npx vercel dev    # serve the HTTP endpoint locally at http://localhost:3000/mcp
 ```
 
-The server is plain TypeScript on the official MCP SDK: `src/server.ts` defines the tools, `src/wanikani.ts` is a minimal WaniKani API client, `api/mcp.ts` is the Vercel function (stateless streamable HTTP), and `src/stdio.ts` is the stdio entry point.
+The server is plain TypeScript on the official MCP SDK: `src/server.ts` defines the tools, `src/wanikani.ts` is a minimal WaniKani API client, `api/mcp.ts` is the Vercel function (stateless streamable HTTP), `src/stdio.ts` is the stdio entry point, and `api/oauth/*` plus `src/oauth.ts` implement the stateless OAuth login used by claude.ai.
 
 ## License
 
