@@ -189,6 +189,7 @@ describe("list_subjects", () => {
     expect(parsed.data[0]).toMatchObject({
       id: 440,
       type: "kanji",
+      data_updated_at: "2026-06-01T00:00:00.000000Z",
       characters: "本",
       meanings: ["Book"],
       readings: ["ほん (onyomi)", "もと (kunyomi)"],
@@ -207,6 +208,8 @@ describe("list_subjects", () => {
     expect(parsed.has_more).toBe(false);
     expect(parsed.next_page_after_id).toBeNull();
     expect(parsed.data[0].meaning_mnemonic).toContain("mnemonic");
+    // The envelope timestamp survives flattening so callers can drive updated_after.
+    expect(parsed.data[0].data_updated_at).toBe("2026-06-01T00:00:00.000000Z");
   });
 });
 

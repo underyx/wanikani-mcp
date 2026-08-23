@@ -57,8 +57,13 @@ function errorResult(message: string): CallToolResult {
   return { content: [{ type: "text", text: message }], isError: true };
 }
 
+/**
+ * Hoist the envelope fields next to the data. data_updated_at is kept because
+ * it is the high-water mark callers feed back into updated_after for
+ * incremental syncs.
+ */
 function flattenResource(resource: WkResource): Record<string, unknown> {
-  return { id: resource.id, type: resource.object, ...resource.data };
+  return { id: resource.id, type: resource.object, data_updated_at: resource.data_updated_at, ...resource.data };
 }
 
 interface ShapedCollection {
@@ -107,6 +112,7 @@ function briefSubject(resource: WkResource): Record<string, unknown> {
   return {
     id: resource.id,
     type: resource.object,
+    data_updated_at: resource.data_updated_at,
     level: data.level,
     slug: data.slug,
     characters: data.characters,
@@ -187,7 +193,7 @@ export function createServer(options: CreateServerOptions = {}): McpServer {
     },
     run(async (client) => {
       const user = await client.get<WkResource>("/user");
-      return textResult(user.data);
+      return textResult({ data_updated_at: user.data_updated_at, ...user.data });
     }),
   );
 
