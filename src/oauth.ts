@@ -66,7 +66,7 @@ export function verifyPkceS256(codeVerifier: string, codeChallenge: string): boo
   return expected.length === provided.length && timingSafeEqual(expected, provided);
 }
 
-/** Public origin of the deployment, honoring Vercel's forwarding headers. */
+/** Public origin of the deployment, honoring proxy forwarding headers. */
 export function publicOrigin(request: Request): string {
   const url = new URL(request.url);
   const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? url.host;

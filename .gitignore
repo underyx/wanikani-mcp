@@ -1,8 +1,9 @@
 node_modules/
 dist/
-.vercel/
 .env
 .env.*
 *.tsbuildinfo
 .DS_Store
-.vercel
+.dev.vars
+.wrangler/
+worker-configuration.d.ts

@@ -1,0 +1,16 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "wanikani-mcp",
+  "main": "worker/index.ts",
+  "compatibility_date": "2025-12-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // No storage bindings: every piece of OAuth state (client registrations,
+  // authorization codes, access and refresh tokens) is carried inside encrypted
+  // self-contained tokens, so the server holds nothing between requests.
+  //
+  // Set the key that seals them with:
+  //   npx wrangler secret put OAUTH_SIGNING_SECRET
+  "observability": {
+    "enabled": true
+  }
+}

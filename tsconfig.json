@@ -15,6 +15,6 @@
     "noUncheckedIndexedAccess": true,
     "verbatimModuleSyntax": true
   },
-  "include": ["src/**/*", "api/**/*", "test/**/*"],
+  "include": ["src/**/*", "api/**/*", "worker/**/*", "test/**/*"],
   "exclude": ["node_modules", "dist"]
 }

@@ -34,7 +34,11 @@ export class WaniKaniClient {
 
   constructor(options: WaniKaniClientOptions) {
     this.token = options.token;
-    this.fetchImpl = options.fetchImpl ?? fetch;
+    // Bound to the global scope deliberately. This is stored on the instance and
+    // invoked as `this.fetchImpl(...)`, which hands an unbound global `fetch`
+    // this client as its `this` — Cloudflare Workers rejects that with
+    // "Illegal invocation: function called with incorrect `this` reference".
+    this.fetchImpl = options.fetchImpl ?? fetch.bind(globalThis);
   }
 
   async get<T = unknown>(path: string, query?: Record<string, QueryValue>): Promise<T> {
